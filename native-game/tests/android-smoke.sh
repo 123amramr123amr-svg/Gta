@@ -16,7 +16,7 @@ for i in $(seq 1 40); do
 done
 if [ "$ready" != 1 ]; then
   adb logcat -d > /tmp/android-log.txt
-  echo "::error::Game did not reach its main scene. Relevant log: $(grep -Ei ' godot[ :]| AndroidRuntime[ :]| Fatal signal| hostfxr| mono | libc[ :]|Displayed org.example.coastalcity|START u0.*org.example.coastalcity' /tmp/android-log.txt | tail -n 50 | tr '\n' ' ' | cut -c1-3500)"
+  echo "::error::Game did not reach its main scene. Relevant log: $(grep -Ei 'godot|AndroidRuntime|Fatal signal|hostfxr|mono|coastalcity' /tmp/android-log.txt | grep -Ev 'AppsFilter|Access denied|Blockstore|Wallpaper|PackageSetting|ProcessStats|BroadcastQueue|AppOps|DeviceConfig|ActivityManager:.*Force stopping|CompatChangeReporter' | head -n 70 | tr '\n' ' ' | cut -c1-3500)"
   exit 1
 fi
 # Check that the process remains alive beyond the splash screen, then relaunch
@@ -37,7 +37,7 @@ for i in $(seq 1 40); do
 done
 if [ "$ready" != 1 ]; then
   adb logcat -d > /tmp/android-log.txt
-  echo "::error::Second launch failed: $(grep -Ei ' godot[ :]| AndroidRuntime[ :]| Fatal signal| hostfxr| mono | libc[ :]|Displayed org.example.coastalcity|START u0.*org.example.coastalcity' /tmp/android-log.txt | tail -n 50 | tr '\n' ' ' | cut -c1-3500)"
+  echo "::error::Second launch failed: $(grep -Ei 'godot|AndroidRuntime|Fatal signal|hostfxr|mono|coastalcity' /tmp/android-log.txt | grep -Ev 'AppsFilter|Access denied|Blockstore|Wallpaper|PackageSetting|ProcessStats|BroadcastQueue|AppOps|DeviceConfig|ActivityManager:.*Force stopping|CompatChangeReporter' | head -n 70 | tr '\n' ' ' | cut -c1-3500)"
   exit 1
 fi
 sleep 10
