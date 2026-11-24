@@ -70,10 +70,12 @@ jobs:
         run: |
           mkdir -p build
           godot --headless --verbose --export-debug 'Android arm64' "$(pwd)/build/CoastalCity-debug.apk" 2>&1 | tee /tmp/export.log || { echo "::error::Godot export: $(tail -n 16 /tmp/export.log | tr '\n' ' ')"; exit 1; }
-          test -s build/CoastalCity-debug.apk
-          "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose build/CoastalCity-debug.apk
-          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging build/CoastalCity-debug.apk | head -n 10
-          unzip -l build/CoastalCity-debug.apk | grep 'lib/arm64-v8a/libdriving.so'
+          test -s build/CoastalCity-debug.apk || { echo "::error::APK missing. Godot: $(tail -n 25 /tmp/export.log | tr '\n' ' ')"; exit 1; }
+          "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose build/CoastalCity-debug.apk 2>&1 | tee /tmp/apksigner.log || { echo "::error::Signing verification: $(tail -n 8 /tmp/apksigner.log | tr '\n' ' ')"; exit 1; }
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging build/CoastalCity-debug.apk > /tmp/badging.txt || { echo "::error::APK badging failed"; exit 1; }
+          head -n 10 /tmp/badging.txt
+          unzip -l build/CoastalCity-debug.apk > /tmp/apk-files.txt
+          grep 'lib/arm64-v8a/libdriving.so' /tmp/apk-files.txt || { echo "::error::C++ library missing from APK"; exit 1; }
       - uses: actions/upload-artifact@v4
         with:
           name: CoastalCity-Android-debug
