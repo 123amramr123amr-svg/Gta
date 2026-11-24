@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>GTA VI — Leonida Fan Game | Vice City Phase 2</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden;background:#0b0e1a;font-family:system-ui,Arial,sans-serif;color:#fff}
+#c{position:fixed;inset:0;display:block}
+#hud{position:fixed;inset:0;pointer-events:none;z-index:10}
+#topbar{position:absolute;top:10px;right:10px;left:10px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.panel{background:rgba(10,10,25,.78);border:1px solid rgba(255,255,255,.18);border-radius:14px;padding:10px 12px;backdrop-filter:blur(8px)}
+#money{font-size:22px;font-weight:900;color:#7CFC9A}
+#stars{font-size:20px;letter-spacing:2px;color:#FFD93D}
+#healthwrap{width:150px;height:12px;background:#222;border-radius:99px;overflow:hidden;margin-top:6px;border:1px solid #444}
+#health{height:100%;width:100%;background:linear-gradient(90deg,#ff5a5a,#ffb347)}
+#speed{font-size:28px;font-weight:900;color:#00E5FF}
+#loc{font-size:12px;color:#FFD93D;font-weight:800}
+#mission{position:absolute;top:92px;right:10px;max-width:330px;font-size:13px;line-height:1.6}
+#mission b{color:#FFD93D}
+#dialog{position:absolute;bottom:180px;right:50%;transform:translateX(50%);max-width:90%;font-size:15px;line-height:1.6;display:none;border:2px solid #FFD93D}
+#minimap{position:absolute;bottom:12px;right:12px;width:150px;height:150px;border-radius:50%;border:3px solid rgba(255,255,255,.7);background:#0a2a1a;overflow:hidden}
+#minimap canvas{width:100%;height:100%}
+#radio{position:absolute;bottom:12px;left:12px;font-size:12px}
+#joy{position:fixed;bottom:110px;left:18px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.35);z-index:20;touch-action:none}
+#stick{position:absolute;left:35px;top:35px;width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.85)}
+.btns{position:fixed;bottom:110px;left:160px;display:flex;flex-direction:column;gap:7px;z-index:20}
+.btns button{pointer-events:auto;width:72px;height:44px;border-radius:12px;border:1px solid rgba(255,255,255,.4);background:rgba(20,20,40,.85);color:#fff;font-weight:800;font-size:12px}
+.btns button:active{background:#FF2E88}
+#start{position:fixed;inset:0;background:linear-gradient(160deg,#12002b,#2b0a3d 45%,#ff2e88 130%);z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px}
+#start h1{font-size:52px;text-shadow:0 4px 0 #00E5FF,0 8px 24px #000}
+#start h2{color:#FFD93D;letter-spacing:6px;margin:4px 0 14px}
+#playBtn{margin-top:20px;padding:16px 42px;font-size:20px;font-weight:900;border:none;border-radius:99px;background:linear-gradient(90deg,#FF2E88,#FF9A3D);color:#fff;cursor:pointer}
+#toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.88);padding:18px 26px;border-radius:16px;font-size:19px;font-weight:900;z-index:40;display:none;text-align:center;border:2px solid #FFD93D;max-width:90%}
+@media(max-width:700px){#minimap{width:110px;height:110px}#mission{max-width:230px;font-size:12px}#start h1{font-size:38px}}
+</style>
+<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js"}}</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud">
+  <div id="topbar">
+    <div class="panel"><div id="charName">Jason Duval</div><div id="money">$500</div><div id="healthwrap"><div id="health"></div></div><div id="loc">📍 Vice City — Ocean Drive</div></div>
+    <div class="panel"><div id="stars">☆☆☆☆☆☆</div><div id="speed">0</div><div style="font-size:11px">KM/H • WANTED</div></div>
+  </div>
+  <div id="mission" class="panel"><b>الفصل 1: Leonida Keys — Gone Fishing</b><br>روح للعلامة الصفراء، خد الشنطة، واهرب. جرب تدخل Ammu-Nation و Jack of Hearts!</div>
+  <div id="dialog" class="panel"></div>
+  <div id="minimap"><canvas id="mm" width="300" height="300"></canvas></div>
+  <div id="radio" class="panel">📻 Vice City FM <span id="radioState" style="color:#00E5FF;font-weight:800">شغال</span><br><small>Synthwave • Leonida</small></div>
+</div>
+<div id="joy"><div id="stick"></div></div>
+<div class="btns">
+  <button id="bEnter">🚗 اركب</button>
+  <button id="bPlace">🚪 ادخل</button>
+  <button id="bTalk">💬 كلم</button>
+  <button id="bSwitch">🔄 بدّل</button>
+  <button id="bDrift">💨 درفت</button>
+  <button id="bRun">🏃 اجري</button>
+</div>
+<div id="toast"></div>
+<div id="start">
+  <h1>GTA VI</h1><h2>LEONIDA • PHASE 2</h2>
+  <p>المرحلة التانية: قيادة ودرفت، حيوانات (تماسيح، فلامنجو، كلاب...)، شخصيات من القصة الأصلية، وأماكن كبيرة تدخلها زي Ammu-Nation و Jack of Hearts.<br>موبايل: جويستيك + أزرار. PC: WASD + E + F + Space درفت</p>
+  <button id="playBtn">▶ العب دلوقتي</button>
+  <p style="font-size:12px;margin-top:12px;opacity:.7">Fan project للتعلم — مش Rockstar الرسمية</p>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+const canvas=document.getElementById('c');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2)); renderer.setSize(innerWidth,innerHeight); renderer.shadowMap.enabled=true;
+const scene=new THREE.Scene(); scene.background=new THREE.Color(0x1a0b2e); scene.fog=new THREE.Fog(0x2b0a3d,80,340);
+const camera=new THREE.PerspectiveCamera(62,innerWidth/innerHeight,0.1,1200);
+scene.add(new THREE.AmbientLight(0xff9a7a,0.75));
+const sun=new THREE.DirectionalLight(0xff7a3d,1.6); sun.position.set(-60,80,-40); sun.castShadow=true; scene.add(sun);
+const neon=new THREE.PointLight(0xff2e88,2,140); neon.position.set(0,20,0); scene.add(neon);
+
+// helpers
+function signTexture(text,bg='#ff2e88',fg='#fff'){
+  const c=document.createElement('canvas'); c.width=512; c.height=128; const x=c.getContext('2d');
+  x.fillStyle=bg; x.fillRect(0,0,512,128); x.fillStyle=fg; x.font='900 42px Arial'; x.textAlign='center'; x.textBaseline='middle'; x.fillText(text,256,64);
+  return new THREE.CanvasTexture(c);
+}
+function makeSign(text,x,y,z,bg){
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(14,3.5),new THREE.MeshBasicMaterial({map:signTexture(text,bg)}));
+  m.position.set(x,y,z); scene.add(m); return m;
+}
+
+// Ground / Ocean / Swamp / Forest
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(700,700),new THREE.MeshStandardMaterial({color:0x2a3a2a})); ground.rotation.x=-Math.PI/2; ground.receiveShadow=true; scene.add(ground);
+const ocean=new THREE.Mesh(new THREE.PlaneGeometry(700,200),new THREE.MeshStandardMaterial({color:0x00b4d8,transparent:true,opacity:.92})); ocean.rotation.x=-Math.PI/2; ocean.position.set(0,0.05,-280); scene.add(ocean);
+const sand=new THREE.Mesh(new THREE.PlaneGeometry(700,45),new THREE.MeshStandardMaterial({color:0xf4d58d})); sand.rotation.x=-Math.PI/2; sand.position.set(0,0.08,-195); scene.add(sand);
+// Grassrivers swamp SE
+const swamp=new THREE.Mesh(new THREE.PlaneGeometry(220,180),new THREE.MeshStandardMaterial({color:0x1a4a2a,transparent:true,opacity:.95})); swamp.rotation.x=-Math.PI/2; swamp.position.set(180,0.06,180); scene.add(swamp);
+// Mount Kalaga north forest
+for(let i=0;i<60;i++){ const t=new THREE.Mesh(new THREE.ConeGeometry(3,10,6),new THREE.MeshStandardMaterial({color:0x14532d})); t.position.set(-300+Math.random()*600,5,220+Math.random()*80); scene.add(t); }
+
+// Roads
+const roadMat=new THREE.MeshStandardMaterial({color:0x22222e});
+for(let i=-5;i<=5;i++){ const r1=new THREE.Mesh(new THREE.PlaneGeometry(700,10),roadMat); r1.rotation.x=-Math.PI/2; r1.position.set(0,0.1,i*50); scene.add(r1); const r2=new THREE.Mesh(new THREE.PlaneGeometry(10,700),roadMat); r2.rotation.x=-Math.PI/2; r2.position.set(i*50,0.1,0); scene.add(r2); }
+// Airport runway north
+const runway=new THREE.Mesh(new THREE.PlaneGeometry(260,22),new THREE.MeshStandardMaterial({color:0x333340})); runway.rotation.x=-Math.PI/2; runway.position.set(0,0.12,240); scene.add(runway);
+makeSign('VCIA AIRPORT',0,10,228,'#222');
+
+// Buildings
+const neonColors=[0xff2e88,0x00e5ff,0xffd93d,0x7c4dff,0x00ff9d];
+function building(x,z,w,h,d,color){
+  const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshStandardMaterial({color:0x1a1a2e,emissive:color,emissiveIntensity:.35})); m.position.set(x,h/2,z); m.castShadow=true; scene.add(m);
+  const s=new THREE.Mesh(new THREE.BoxGeometry(w+0.2,1.2,d+0.2),new THREE.MeshBasicMaterial({color})); s.position.set(x,h-1,z); scene.add(s);
+}
+for(let gx=-4;gx<=4;gx++) for(let gz=-3;gz<=4;gz++){ if(Math.abs(gx*50)<35&&Math.abs(gz*50)<35) continue; building(gx*50+(Math.random()*10-5),gz*50+(Math.random()*10-5),16+Math.random()*10,12+Math.random()*38,16+Math.random()*10,neonColors[Math.floor(Math.random()*neonColors.length)]); }
+function palm(x,z){ const g=new THREE.Group(); const tr=new THREE.Mesh(new THREE.CylinderGeometry(.3,.5,7,6),new THREE.MeshStandardMaterial({color:0x8b5a2b})); tr.position.y=3.5; g.add(tr); for(let i=0;i<6;i++){const l=new THREE.Mesh(new THREE.ConeGeometry(2.2,1,4),new THREE.MeshStandardMaterial({color:0x00c853})); l.position.set(Math.cos(i)*1.4,7.2,Math.sin(i)*1.4); g.add(l);} g.position.set(x,0,z); scene.add(g); }
+for(let i=0;i<50;i++) palm(-320+Math.random()*640,-180+Math.random()*30);
+for(let i=0;i<30;i++) palm(-280+Math.random()*560,-120+Math.random()*240);
+
+// LARGE ENTERABLE PLACES (exterior + sign + door)
+const places=[
+  {name:'Ammu-Nation',x:-60,z:-20,color:'#ff3333',desc:'أسلحة — اشتري مسدس $200',type:'gun'},
+  {name:'Convenience Store',x:60,z:20,color:'#00c853',desc:'أكل وصحة — أو اسرق الكاشير',type:'shop'},
+  {name:'Jack of Hearts',x:-60,z:60,color:'#ff2e88',desc:'نادي Boobie Ike — Strip Club',type:'club'},
+  {name:'Gym & Clothing',x:60,z:-60,color:'#7c4dff',desc:'تمرين وقوة + تغيير لبس',type:'gym'},
+  {name:'Vice City Mall',x:0,z:-100,color:'#00e5ff',desc:'مول كبير — دخول للاستكشاف',type:'mall'},
+  {name:'Hospital',x:100,z:100,color:'#ffffff',desc:'علاج $50',type:'hospital'},
+];
+places.forEach(p=>{
+  const b=new THREE.Mesh(new THREE.BoxGeometry(28,10,20),new THREE.MeshStandardMaterial({color:0x222233,emissive:new THREE.Color(p.color),emissiveIntensity:.25})); b.position.set(p.x,5,p.z); b.castShadow=true; scene.add(b);
+  makeSign(p.name,p.x,11,p.z+10.2,p.color);
+  // door glow
+  const door=new THREE.Mesh(new THREE.BoxGeometry(4,5,0.5),new THREE.MeshBasicMaterial({color:0xffd93d})); door.position.set(p.x,2.5,p.z+10.3); scene.add(door);
+  p.doorPos=new THREE.Vector3(p.x,0,p.z+12);
+});
+
+// Interiors (hidden at x=1000)
+const interiorGroup=new THREE.Group(); interiorGroup.position.set(1000,0,0); scene.add(interiorGroup);
+function buildInterior(type){
+  interiorGroup.clear();
+  const floor=new THREE.Mesh(new THREE.PlaneGeometry(40,30),new THREE.MeshStandardMaterial({color:0x333344})); floor.rotation.x=-Math.PI/2; floor.position.y=0.1; interiorGroup.add(floor);
+  const wallMat=new THREE.MeshStandardMaterial({color:0x222233});
+  [[0,5,-15,40,10],[0,5,15,40,10],[-20,5,0,1,30],[20,5,0,1,30]].forEach(([x,y,z,w,h])=>{ const wall=new THREE.Mesh(new THREE.BoxGeometry(w===1?1:40,10,w===1?30:1),wallMat); wall.position.set(x,y,z); interiorGroup.add(wall); });
+  // counter
+  const counter=new THREE.Mesh(new THREE.BoxGeometry(10,1.2,2),new THREE.MeshStandardMaterial({color:0x8b5a2b})); counter.position.set(0,0.6,-8); interiorGroup.add(counter);
+  // shelves / tables per type
+  for(let i=0;i<4;i++){ const shelf=new THREE.Mesh(new THREE.BoxGeometry(6,2,1),new THREE.MeshStandardMaterial({color:0x444455})); shelf.position.set(-12+i*8,1,8); interiorGroup.add(shelf); }
+  // clerk NPC
+  const clerk=makeChar(0xffd93d); clerk.position.set(0,0,-10); interiorGroup.add(clerk);
+  // exit door light
+  const exit=new THREE.Mesh(new THREE.BoxGeometry(4,5,0.5),new THREE.MeshBasicMaterial({color:0x00ff9d})); exit.position.set(0,2.5,14.8); interiorGroup.add(exit);
+  // neon interior light
+  const pl=new THREE.PointLight(0xffd93d,2,50); pl.position.set(0,8,0); interiorGroup.add(pl);
+  interiorGroup.userData.type=type;
+}
+let insidePlace=null, savedPos=new THREE.Vector3();
+function enterPlace(){
+  if(insidePlace){ // exit
+    player.position.copy(savedPos); insidePlace=null; toast('خرجت بره'); document.getElementById('mission').innerHTML='<b>بره</b><br>جرب مكان تاني أو كمل المهمة.'; return;
+  }
+  let best=null,bd=1e9;
+  places.forEach(p=>{ const d=player.position.distanceTo(p.doorPos); if(d<bd){bd=d;best=p;} });
+  if(bd<6){
+    savedPos.copy(player.position); insidePlace=best; buildInterior(best.type);
+    player.position.set(1000,0,10);
+    toast('🚪 دخلت: '+best.name);
+    if(best.type==='gun'){ if(money>=200){money-=200; toast('🔫 اشتريت مسدس! -$200');} else toast('محتاج $200 للمسدس'); }
+    if(best.type==='shop'){ health=Math.min(100,health+40); toast('🍔 أكلت + صحة'); }
+    if(best.type==='gym'){ toast('💪 تمرين! قوتك زادت'); }
+    if(best.type==='hospital'){ if(money>=50){money-=50; health=100; toast('🏥 اتعالجت');} }
+    if(best.type==='club'){ toast('🎵 Jack of Hearts — Boobie Ike هنا!'); }
+    updateHUD();
+  } else toast('قرب من باب أصفر لمكان الأول');
+}
+
+// Characters
+function makeChar(topColor,skin=0xf2c9a0){
+  const g=new THREE.Group();
+  const body=new THREE.Mesh(new THREE.BoxGeometry(.9,1.1,.5),new THREE.MeshStandardMaterial({color:topColor})); body.position.y=1.25; body.castShadow=true; g.add(body);
+  const head=new THREE.Mesh(new THREE.BoxGeometry(.55,.6,.55),new THREE.MeshStandardMaterial({color:skin})); head.position.y=2.15; g.add(head);
+  const hair=new THREE.Mesh(new THREE.BoxGeometry(.6,.25,.6),new THREE.MeshStandardMaterial({color:0x2b1a0a})); hair.position.y=2.5; g.add(hair);
+  const legL=new THREE.Mesh(new THREE.BoxGeometry(.32,.9,.32),new THREE.MeshStandardMaterial({color:0x1a2a5a})); legL.position.set(-.22,.45,0); g.add(legL);
+  const legR=legL.clone(); legR.position.x=.22; g.add(legR);
+  const armL=new THREE.Mesh(new THREE.BoxGeometry(.22,.85,.22),new THREE.MeshStandardMaterial({color:skin})); armL.position.set(-.6,1.3,0); g.add(armL);
+  const armR=armL.clone(); armR.position.x=.6; g.add(armR);
+  g.userData={legL,legR,armL,armR}; return g;
+}
+const jason=makeChar(0xffffff); jason.position.set(0,0,10); scene.add(jason);
+const lucia=makeChar(0xff2e4d,0xd9a066); lucia.position.set(3,0,10); lucia.visible=false; scene.add(lucia);
+let player=jason, isJason=true, walkT=0;
+
+// Story NPCs with names
+const storyNPCs=[
+  {name:'Brian Heder',color:0x8b5a2b,x:-100,z:80,line:'Brian: Jason! الشغل في Keys لازم يخلص. Lucia هتخرج من السجن قريب.'},
+  {name:'Cal Hampton',color:0x00e5ff,x:-90,z:90,line:'Cal: بيراقب Coast Guard... سمعت حاجة غريبة في الراديو!'},
+  {name:'Boobie Ike',color:0xffd93d,x:-60,z:48,line:'Boobie: أهلاً في Jack of Hearts. عندي شغل ليك انت و Lucia.'},
+  {name:'Dre\'Quan',color:0x7c4dff,x:-50,z:55,line:'Dre\'Quan: Only Raw Records هتولع مع Real Dimez!'},
+  {name:'Raul Bautista',color:0xff2e88,x:80,z:-80,line:'Raul: لو عايز سرقة بنك كبيرة، أنا الراجل الصح.'},
+  {name:'Mia Caminos',color:0x00ff9d,x:40,z:-40,line:'Mia: Lucia بنتي! عايزة حياة أحسن من اللي شفناها في Liberty City.'},
+  {name:'Captain Méndez',color:0x2244ff,x:120,z:120,line:'Méndez: انتوا الاتنين مطلوبين. استسلموا أحسنلكم.'},
+];
+storyNPCs.forEach(n=>{ const c=makeChar(n.color); c.position.set(n.x,0,n.z); scene.add(c); n.obj=c; makeSign(n.name,n.x,3.2,n.z,'#111'); });
+
+// Pedestrians (20)
+const peds=[];
+for(let i=0;i<20;i++){ const c=makeChar(neonColors[i%5]); c.position.set(-200+Math.random()*400,0,-100+Math.random()*200); scene.add(c); peds.push({obj:c,dir:Math.random()*Math.PI*2,speed:1+Math.random()}); }
+
+// ANIMALS
+const animals=[];
+function addAnimal(obj,type,x,z,extra={}){ obj.position.set(x,0,z); scene.add(obj); animals.push({obj,type,dir:Math.random()*Math.PI*2,timer:0,...extra}); return obj; }
+// Alligator
+function makeAlligator(){ const g=new THREE.Group(); const b=new THREE.Mesh(new THREE.BoxGeometry(1,0.6,3.5),new THREE.MeshStandardMaterial({color:0x2d5a27})); b.position.y=.4; g.add(b); const head=new THREE.Mesh(new THREE.BoxGeometry(.8,.4,1),new THREE.MeshStandardMaterial({color:0x3a7a33})); head.position.set(0,.5,2); g.add(head); const tail=new THREE.Mesh(new THREE.ConeGeometry(.4,2,4),new THREE.MeshStandardMaterial({color:0x2d5a27})); tail.rotation.x=Math.PI/2; tail.position.set(0,.4,-2.5); g.add(tail); return g; }
+for(let i=0;i<6;i++) addAnimal(makeAlligator(),'gator',150+Math.random()*60,150+Math.random()*60);
+// Flamingo
+function makeFlamingo(){ const g=new THREE.Group(); const b=new THREE.Mesh(new THREE.SphereGeometry(.5,8,8),new THREE.MeshStandardMaterial({color:0xff6b9d})); b.position.y=1; g.add(b); const neck=new THREE.Mesh(new THREE.CylinderGeometry(.08,.08,1),new THREE.MeshStandardMaterial({color:0xff6b9d})); neck.position.set(0,1.6,.3); g.add(neck); const leg=new THREE.Mesh(new THREE.CylinderGeometry(.05,.05,1),new THREE.MeshStandardMaterial({color:0xff6b9d})); leg.position.y=.5; g.add(leg); return g; }
+for(let i=0;i<8;i++) addAnimal(makeFlamingo(),'flamingo',-100+Math.random()*200,-170+Math.random()*20);
+// Dog
+function makeDog(col=0x8b5a2b){ const g=new THREE.Group(); const b=new THREE.Mesh(new THREE.BoxGeometry(.6,.5,1),new THREE.MeshStandardMaterial({color:col})); b.position.y=.5; g.add(b); const h=new THREE.Mesh(new THREE.BoxGeometry(.4,.4,.4),new THREE.MeshStandardMaterial({color:col})); h.position.set(0,.8,.6); g.add(h); return g; }
+for(let i=0;i<5;i++) addAnimal(makeDog(i%2?0x111111:0xd9a066),'dog',Math.random()*100-50,Math.random()*100-50);
+// Cat
+for(let i=0;i<4;i++) addAnimal(makeDog(0xff8800),'cat',Math.random()*80-40,Math.random()*80-40);
+// Deer (Mount Kalaga)
+function makeDeer(){ const g=new THREE.Group(); const b=new THREE.Mesh(new THREE.BoxGeometry(.7,.9,1.4),new THREE.MeshStandardMaterial({color:0xa67c52})); b.position.y=1; g.add(b); const h=new THREE.Mesh(new THREE.BoxGeometry(.4,.5,.4),new THREE.MeshStandardMaterial({color:0xa67c52})); h.position.set(0,1.7,.7); g.add(h); return g; }
+for(let i=0;i<5;i++) addAnimal(makeDeer(),'deer',-200+Math.random()*400,230+Math.random()*40);
+// Iguana
+for(let i=0;i<4;i++) addAnimal(makeDog(0x00c853),'iguana',Math.random()*100-50,Math.random()*100-50);
+// Turtle + Dolphin in ocean
+for(let i=0;i<3;i++) addAnimal(makeDog(0x2d5a27),'turtle',-100+Math.random()*200,-260+Math.random()*30);
+for(let i=0;i<3;i++){ const d=makeDog(0x00b4d8); d.scale.set(1.5,1,2); addAnimal(d,'dolphin',-100+Math.random()*200,-270); }
+// Flying birds
+const birds=[];
+for(let i=0;i<8;i++){ const b=new THREE.Mesh(new THREE.ConeGeometry(.4,1.5,4),new THREE.MeshStandardMaterial({color:0xffffff})); b.position.set(Math.random()*200-100,20+Math.random()*10,-100+Math.random()*100); scene.add(b); birds.push({obj:b,angle:Math.random()*Math.PI*2,r:20+Math.random()*30}); }
+
+// Cars with types
+const cars=[];
+function makeCar(color,type='sedan'){
+  const g=new THREE.Group();
+  const body=new THREE.Mesh(new THREE.BoxGeometry(2,0.7,4.2),new THREE.MeshStandardMaterial({color,metalness:.6,roughness:.3})); body.position.y=.65; body.castShadow=true; g.add(body);
+  const cabin=new THREE.Mesh(new THREE.BoxGeometry(1.7,0.6,2),new THREE.MeshStandardMaterial({color:0x111122})); cabin.position.set(0,1.25,-.2); g.add(cabin);
+  const wg=new THREE.CylinderGeometry(.38,.38,.3,12), wm=new THREE.MeshStandardMaterial({color:0x111111});
+  [[-1,1.3],[1,1.3],[-1,-1.3],[1,-1.3]].forEach(([x,z])=>{const w=new THREE.Mesh(wg,wm); w.rotation.z=Math.PI/2; w.position.set(x,.38,z); g.add(w);});
+  const hl=new THREE.Mesh(new THREE.BoxGeometry(1.6,.18,.1),new THREE.MeshBasicMaterial({color:0xffffaa})); hl.position.set(0,.65,2.12); g.add(hl);
+  const stats={supercar:{max:38,acc:30,grip:1.4},muscle:{max:30,acc:26,grip:.8},sedan:{max:28,acc:22,grip:1},suv:{max:24,acc:18,grip:1.1},police:{max:32,acc:26,grip:1.2}}[type]||{max:28,acc:22,grip:1};
+  g.userData={speed:0,angle:0,drift:0,...stats,type}; return g;
+}
+const carDefs=[{c:0xff2e88,n:'Grotti Cheetah',t:'supercar'},{c:0xff8c00,n:'Vapid Dominator',t:'muscle'},{c:0x00e5ff,n:'Bravado Buffalo',t:'muscle'},{c:0xffd93d,n:'Invetero Coquette',t:'supercar'},{c:0x7c4dff,n:'Pfister Comet',t:'supercar'},{c:0x00ff9d,n:'Karin Sultan',t:'sedan'},{c:0xeeeeee,n:'Albany Emperor',t:'sedan'},{c:0x2244ff,n:'Vapid Police',t:'police'},{c:0x8b5a2b,n:'Gallivanter Baller SUV',t:'suv'},{c:0xff0000,n:'Pegassi Toros SUV',t:'suv'}];
+carDefs.forEach((d,i)=>{ const car=makeCar(d.c,d.t); car.position.set(-50+i*13,0,-30+(i%3)*20); car.rotation.y=Math.random()*Math.PI; car.userData.name=d.n; scene.add(car); cars.push(car); });
+const traffic=[]; for(let i=0;i<6;i++){const t=makeCar(neonColors[i%5],'sedan'); t.position.set(-220+i*70,0,(i%2?-50:50)); scene.add(t); traffic.push(t);}
+
+// Mission
+const marker=new THREE.Mesh(new THREE.CylinderGeometry(2,2,8,16),new THREE.MeshBasicMaterial({color:0xffd93d,transparent:true,opacity:.5})); marker.position.set(60,4,-60); scene.add(marker);
+const bag=new THREE.Mesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshStandardMaterial({color:0xffd93d,emissive:0xaa8800})); bag.position.copy(marker.position); bag.position.y=.5; scene.add(bag);
+const police=[]; for(let i=0;i<3;i++){const p=makeCar(0x2244ff,'police'); p.position.set(120,0,120); scene.add(p); police.push(p);}
+
+// Input
+const keys={}; addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true; if(e.key.toLowerCase()==='e') toggleCar(); if(e.key.toLowerCase()==='f') enterPlace(); if(e.key.toLowerCase()==='g') talk(); if(e.key==='Tab'){e.preventDefault(); switchChar();}});
+addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+let joyX=0,joyY=0; const joy=document.getElementById('joy'),stick=document.getElementById('stick'); let joyId=null;
+joy.addEventListener('touchstart',e=>{joyId=e.touches[0].identifier},{passive:true});
+addEventListener('touchmove',e=>{for(const t of e.touches) if(t.identifier===joyId){const r=joy.getBoundingClientRect(); let dx=t.clientX-(r.left+60),dy=t.clientY-(r.top+60); const d=Math.hypot(dx,dy)||1,cl=Math.min(d,45); dx=dx/d*cl; dy=dy/d*cl; stick.style.left=(35+dx)+'px'; stick.style.top=(35+dy)+'px'; joyX=dx/45; joyY=dy/45;}},{passive:true});
+addEventListener('touchend',e=>{for(const t of e.changedTouches) if(t.identifier===joyId){joyId=null;joyX=joyY=0;stick.style.left='35px';stick.style.top='35px';}});
+let running=false, drifting=false;
+document.getElementById('bRun').onclick=()=>running=!running;
+document.getElementById('bEnter').onclick=toggleCar;
+document.getElementById('bPlace').onclick=enterPlace;
+document.getElementById('bTalk').onclick=talk;
+document.getElementById('bSwitch').onclick=switchChar;
+document.getElementById('bDrift').onclick=()=>{drifting=!drifting; toast(drifting?'💨 درفت شغال':'درفت مطفي');};
+
+function switchChar(){ isJason=!isJason; player.visible=false; player=isJason?jason:lucia; player.visible=true; document.getElementById('charName').textContent=isJason?'Jason Duval':'Lucia Caminos'; toast(isJason?'▶ Jason Duval':'▶ Lucia Caminos'); }
+let inCar=null;
+function toggleCar(){
+  if(inCar){ inCar=null; toast('نزلت من العربية'); return; }
+  let best=null,bd=1e9; cars.forEach(c=>{const d=c.position.distanceTo(player.position); if(d<bd){bd=d;best=c;}});
+  if(bd<5){ inCar=best; toast('🚗 '+best.userData.name); } else toast('قرب من عربية الأول');
+}
+function talk(){
+  let best=null,bd=1e9; storyNPCs.forEach(n=>{const d=player.position.distanceTo(n.obj.position); if(d<bd){bd=d;best=n;}});
+  if(bd<6){ const d=document.getElementById('dialog'); d.textContent=best.line; d.style.display='block'; setTimeout(()=>d.style.display='none',4000); }
+  else toast('قرب من شخصية للكلام');
+}
+let wanted=0,money=500,health=100,missionStage=0;
+function addWanted(n){ wanted=Math.min(6,wanted+n); updateHUD(); }
+function updateHUD(){ document.getElementById('stars').textContent='★'.repeat(wanted)+'☆'.repeat(6-wanted); document.getElementById('money').textContent='$'+money.toLocaleString(); document.getElementById('health').style.width=health+'%'; }
+function toast(msg){const t=document.getElementById('toast'); t.textContent=msg; t.style.display='block'; setTimeout(()=>t.style.display='none',1800);}
+
+// Radio
+let audioCtx=null,radioOn=true;
+function initAudio(){ if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)(); }
+function playNote(f,t,d,type='sawtooth',v=.06){ const o=audioCtx.createOscillator(),g=audioCtx.createGain(); o.type=type; o.frequency.value=f; g.gain.setValueAtTime(v,t); g.gain.exponentialRampToValueAtTime(.001,t+d); o.connect(g).connect(audioCtx.destination); o.start(t); o.stop(t+d); }
+function radioLoop(){ if(!radioOn||!audioCtx) return; const bass=[55,55,65.4,49],lead=[220,261.6,329.6,392]; let t=audioCtx.currentTime+.1; for(let i=0;i<8;i++){playNote(bass[i%4],t+i*.25,.22,'triangle',.12); if(i%2===0) playNote(lead[(i/2)%4],t+i*.25,.18,'sawtooth',.04);} setTimeout(radioLoop,2000); }
+
+// Minimap + location
+const mm=document.getElementById('mm').getContext('2d');
+function locName(){ const x=player.position.x,z=player.position.z; if(insidePlace) return '📍 داخل: '+insidePlace.name; if(z<-180) return '📍 Vice Beach'; if(z>200) return '📍 Mount Kalaga / VCIA'; if(x>100&&z>100) return '📍 Grassrivers Swamp 🐊'; if(z<-200) return '📍 Leonida Keys 🌊'; return '📍 Vice City — Ocean Drive'; }
+function drawMap(){
+  mm.fillStyle='#0a2a1a'; mm.fillRect(0,0,300,300); mm.strokeStyle='#333'; for(let i=0;i<300;i+=30){mm.beginPath();mm.moveTo(i,0);mm.lineTo(i,300);mm.stroke();mm.beginPath();mm.moveTo(0,i);mm.lineTo(300,i);mm.stroke();}
+  mm.fillStyle='#FFD93D'; mm.beginPath(); mm.arc(150+marker.position.x*0.4,150+marker.position.z*0.4,7,0,7); mm.fill();
+  mm.fillStyle='#00ff9d'; places.forEach(p=>mm.fillRect(150+p.x*0.4-3,150+p.z*0.4-3,6,6));
+  mm.fillStyle='#fff'; cars.forEach(c=>mm.fillRect(150+c.position.x*0.4-2,150+c.position.z*0.4-2,4,4));
+  mm.fillStyle='#ff6b9d'; animals.forEach(a=>mm.fillRect(150+a.obj.position.x*0.4-1,150+a.obj.position.z*0.4-1,2,2));
+  mm.fillStyle=isJason?'#fff':'#ff2e4d'; mm.beginPath(); mm.arc(150+player.position.x*0.4,150+player.position.z*0.4,6,0,7); mm.fill();
+  document.getElementById('loc').textContent=locName();
+}
+
+// Loop
+const clock=new THREE.Clock(); let camAngle=0;
+function animate(){
+  requestAnimationFrame(animate); const dt=Math.min(clock.getDelta(),.05); const speedBase=(keys['shift']||running)?11:5.5;
+  if(inCar){
+    const u=inCar.userData; let accel=0;
+    if(keys['w']||joyY<-.2) accel+=u.acc;
+    if(keys['s']||joyY>.2) accel-=u.acc*.8;
+    u.speed+=accel*dt; u.speed*=0.97; u.speed=Math.max(-12,Math.min(u.max,u.speed));
+    const isDrift=keys[' ']||drifting;
+    let steer=0; if(keys['a']||joyX<-.2) steer+=1.8; if(keys['d']||joyX>.2) steer-=1.8;
+    u.angle+=steer*dt*(u.speed>=0?1:-1)*(isDrift?1.6:1);
+    if(isDrift && Math.abs(u.speed)>8){ u.drift+=dt*2; if(Math.random()<.3){ const smoke=new THREE.Mesh(new THREE.SphereGeometry(.5,6,6),new THREE.MeshBasicMaterial({color:0xaaaaaa,transparent:true,opacity:.5})); smoke.position.copy(inCar.position); smoke.position.y=.3; scene.add(smoke); setTimeout(()=>scene.remove(smoke),600);} }
+    else u.drift=Math.max(0,u.drift-dt*3);
+    inCar.rotation.y=u.angle; inCar.position.x+=Math.sin(u.angle)*u.speed*dt; inCar.position.z+=Math.cos(u.angle)*u.speed*dt;
+    player.position.copy(inCar.position);
+    document.getElementById('speed').textContent=Math.abs(Math.round(u.speed*3.6));
+    if(Math.abs(u.speed)>20 && Math.random()<.015) addWanted(1);
+  } else {
+    document.getElementById('speed').textContent='0';
+    let mx=0,mz=0; if(keys['w']) mz-=1; if(keys['s']) mz+=1; if(keys['a']) mx-=1; if(keys['d']) mx+=1; mx+=joyX; mz+=joyY;
+    const len=Math.hypot(mx,mz);
+    if(len>.1){ const nx=mx/len,nz=mz/len; player.position.x+=nx*speedBase*dt; player.position.z+=nz*speedBase*dt; player.rotation.y=Math.atan2(nx,nz); walkT+=dt*10; const u=player.userData; u.legL.rotation.x=Math.sin(walkT)*.7; u.legR.rotation.x=-Math.sin(walkT)*.7; }
+    if(!insidePlace){ player.position.x=Math.max(-320,Math.min(320,player.position.x)); player.position.z=Math.max(-320,Math.min(320,player.position.z)); }
+    else { player.position.x=Math.max(985,Math.min(1015,player.position.x)); player.position.z=Math.max(-12,Math.min(12,player.position.z)); }
+  }
+  traffic.forEach(t=>{ t.position.x+=dt*12; if(t.position.x>300) t.position.x=-300; });
+  // peds wander + flee
+  peds.forEach(p=>{ p.timer=(p.timer||0)+dt; if(p.timer>3){p.timer=0; p.dir+=Math.random()*1.5-0.75;} const flee=wanted>0 && p.obj.position.distanceTo(player.position)<10; if(flee){ const d=new THREE.Vector3().subVectors(p.obj.position,player.position); p.dir=Math.atan2(d.x,d.z);} p.obj.position.x+=Math.sin(p.dir)*p.speed*dt; p.obj.position.z+=Math.cos(p.dir)*p.speed*dt; p.obj.rotation.y=p.dir; });
+  // animals
+  animals.forEach(a=>{ a.timer+=dt; if(a.timer>4){a.timer=0; a.dir+=Math.random()*2-1;} const flee=inCar && a.obj.position.distanceTo(player.position)<8; if(flee) a.dir+=Math.PI; a.obj.position.x+=Math.sin(a.dir)*dt*1.5; a.obj.position.z+=Math.cos(a.dir)*dt*1.5; a.obj.rotation.y=a.dir;
+    if(a.type==='gator' && a.obj.position.distanceTo(player.position)<2.5 && !inCar){ health=Math.max(0,health-3); updateHUD(); if(Math.random()<.02) toast('🐊 تمساح عضك! اهرب!'); }
+    if(a.type==='dolphin'){ a.obj.position.y=Math.abs(Math.sin(a.timer*2))*1.5; }
+  });
+  birds.forEach(b=>{ b.angle+=dt*.5; b.obj.position.x=Math.sin(b.angle)*b.r; b.obj.position.z=Math.cos(b.angle)*b.r-50; b.obj.rotation.y=b.angle; });
+  if(wanted>0){ police.forEach(p=>{ const dir=new THREE.Vector3().subVectors(player.position,p.position); dir.y=0; const d=dir.length(); if(d>3){dir.normalize(); p.position.addScaledVector(dir,dt*(9+wanted*2)); p.rotation.y=Math.atan2(dir.x,dir.z);} if(d<2.5&&Math.random()<.01){health=Math.max(0,health-2); updateHUD();} }); }
+  marker.rotation.y+=dt; bag.rotation.y+=dt*2;
+  if(missionStage===0 && player.position.distanceTo(marker.position)<4){ missionStage=1; money+=200; addWanted(2); bag.visible=false; document.getElementById('mission').innerHTML='<b>اهرب!</b><br>الشرطة جاية! روح لنقطة التسليم عند الشاطئ. جرب تدخل Ammu-Nation.'; marker.position.set(-80,4,-140); bag.visible=true; bag.position.copy(marker.position); bag.position.y=.5; toast('💰 خدت الشنطة +$200'); updateHUD(); }
+  else if(missionStage===1 && player.position.distanceTo(marker.position)<4){ missionStage=2; money+=800; wanted=0; bag.visible=false; document.getElementById('mission').innerHTML='<b>مبروك! الفصل 1 خلص</b><br>الفصل 2: روح كلم Boobie Ike في Jack of Hearts (زر كلم).'; toast('🏆 +$800'); updateHUD(); }
+  if(wanted>0 && Math.random()<.0008){wanted--; updateHUD();}
+  const target=player.position; camera.position.set(target.x+Math.sin(camAngle)*10,7,target.z+Math.cos(camAngle)*10); camera.lookAt(target.x,1.5,target.z);
+  if(keys['q']) camAngle+=dt*1.5;
+  drawMap(); renderer.render(scene,camera);
+}
+animate();
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+document.getElementById('playBtn').onclick=()=>{document.getElementById('start').style.display='none'; initAudio(); radioLoop(); toast('🌴 أهلاً في Vice City — المرحلة 2');};
+updateHUD();
+</script>
+</body>
+</html>

@@ -1,0 +1,76 @@
+name: Android debug APK
+on:
+  push:
+    paths:
+      - 'native-game/**'
+      - '.github/workflows/android-apk.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - uses: android-actions/setup-android@v3
+      - name: Install Android SDK and .NET Android workload
+        run: |
+          sdkmanager 'platforms;android-34' 'build-tools;34.0.0' 'ndk;26.1.10909125'
+          dotnet workload install android
+      - uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.3.0
+          use-dotnet: true
+          include-templates: true
+      - name: Build native C++ driving library
+        working-directory: native-game
+        run: |
+          cmake -S Native -B /tmp/driving-build \
+            -DCMAKE_TOOLCHAIN_FILE="$ANDROID_HOME/ndk/26.1.10909125/build/cmake/android.toolchain.cmake" \
+            -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-24
+          cmake --build /tmp/driving-build --config Release
+          mkdir -p native/bin/arm64-v8a
+          cp /tmp/driving-build/libdriving.so native/bin/arm64-v8a/
+      - name: Configure Godot Android export
+        run: |
+          mkdir -p "$HOME/.config/godot" "$HOME/.android"
+          keytool -genkeypair -v -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname 'CN=Android Debug,O=Android,C=US'
+          cat > "$HOME/.config/godot/editor_settings-4.tres" <<SETTINGS
+          [gd_resource type="EditorSettings" format=3]
+          [resource]
+          export/android/android_sdk_path = "$ANDROID_HOME"
+          export/android/java_sdk_path = "$JAVA_HOME"
+          export/android/debug_keystore = "$HOME/.android/debug.keystore"
+          export/android/debug_keystore_user = "androiddebugkey"
+          export/android/debug_keystore_pass = "android"
+          SETTINGS
+      - name: Import and compile C#
+        working-directory: native-game
+        run: |
+          godot --headless --editor --import --quit
+          dotnet build CoastalCity.csproj --configuration Debug
+      - name: Export and verify APK
+        working-directory: native-game
+        run: |
+          mkdir -p build
+          godot --headless --verbose --export-debug 'Android arm64' "$(pwd)/build/CoastalCity-debug.apk"
+          test -s build/CoastalCity-debug.apk
+          "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose build/CoastalCity-debug.apk
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging build/CoastalCity-debug.apk | head -n 10
+          unzip -l build/CoastalCity-debug.apk | grep 'lib/arm64-v8a/libdriving.so'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CoastalCity-Android-debug
+          path: native-game/build/CoastalCity-debug.apk
+          if-no-files-found: error
+          retention-days: 14
