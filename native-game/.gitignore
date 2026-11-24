@@ -1,0 +1,7 @@
+.godot/
+.mono/
+bin/
+obj/
+Native/build*/
+native/bin/
+*.apk
