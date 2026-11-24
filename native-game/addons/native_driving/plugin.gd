@@ -9,7 +9,7 @@ class DrivingExporter extends EditorExportPlugin:
 		if features.has("android"):
 			var lib := "res://native/bin/arm64-v8a/libdriving.so"
 			if FileAccess.file_exists(lib):
-				add_shared_object(lib, PackedStringArray(["arm64-v8a"]))
+				add_shared_object(lib, PackedStringArray(["arm64-v8a"]), "")
 
 var exporter: DrivingExporter
 
