@@ -78,6 +78,7 @@ jobs:
           "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging build/CoastalCity-debug.apk > /tmp/badging.txt || { echo "::error::APK badging failed"; exit 1; }
           head -n 10 /tmp/badging.txt
           unzip -l build/CoastalCity-debug.apk > /tmp/apk-files.txt
+          echo "::notice::Bundled runtime: $(grep -Ei 'hostfxr|godotsharp|coastalcity|libcoreclr' /tmp/apk-files.txt | tr '\n' ' ' | cut -c1-7000)"
           for abi in arm64-v8a x86_64; do
             grep "lib/$abi/libdriving.so" /tmp/apk-files.txt || { echo "::error::C++ library missing for $abi"; exit 1; }
           done

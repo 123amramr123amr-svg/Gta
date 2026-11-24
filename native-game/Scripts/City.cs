@@ -19,10 +19,15 @@ public partial class City : Node3D
 
     public override void _Ready()
     {
+        GD.Print("CITY_START_ENV");
         BuildEnvironment();
+        GD.Print("CITY_START_GEOMETRY");
         BuildCity();
+        GD.Print("CITY_START_PLAYER");
         BuildPlayer();
+        GD.Print("CITY_START_CAR");
         BuildCar();
+        GD.Print("CITY_START_UI");
         BuildUi();
         camera = new Camera3D { Current = true, Fov = 58, Far = 350 };
         AddChild(camera);
