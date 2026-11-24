@@ -24,7 +24,8 @@ jobs:
           dotnet-version: '8.0.x'
       - name: Install Android SDK and .NET Android workload
         run: |
-          sdkmanager --sdk_root="$ANDROID_HOME" 'platforms;android-34' 'build-tools;34.0.0' 'ndk;26.1.10909125' 2>&1 | tee /tmp/sdk.log || { echo "::error::SDK setup failed: $(tail -n 5 /tmp/sdk.log | tr '\n' ' ')"; exit 1; }
+          set -o pipefail
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_HOME" 'platforms;android-34' 'build-tools;34.0.0' 'ndk;26.1.10909125' 2>&1 | tee /tmp/sdk.log || { echo "::error::SDK setup failed: $(tail -n 5 /tmp/sdk.log | tr '\n' ' ')"; exit 1; }
           dotnet workload install android 2>&1 | tee /tmp/workload.log || { echo "::error::Workload setup failed: $(tail -n 5 /tmp/workload.log | tr '\n' ' ')"; exit 1; }
       - uses: chickensoft-games/setup-godot@v2
         with:
