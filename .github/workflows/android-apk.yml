@@ -24,7 +24,7 @@ jobs:
           dotnet-version: '8.0.x'
       - name: Install Android SDK and .NET Android workload
         run: |
-          sdkmanager 'platforms;android-34' 'build-tools;34.0.0' 'ndk;26.1.10909125' 2>&1 | tee /tmp/sdk.log || { echo "::error::SDK setup failed: $(tail -n 5 /tmp/sdk.log | tr '\n' ' ')"; exit 1; }
+          sdkmanager --sdk_root="$ANDROID_HOME" 'platforms;android-34' 'build-tools;34.0.0' 'ndk;26.1.10909125' 2>&1 | tee /tmp/sdk.log || { echo "::error::SDK setup failed: $(tail -n 5 /tmp/sdk.log | tr '\n' ' ')"; exit 1; }
           dotnet workload install android 2>&1 | tee /tmp/workload.log || { echo "::error::Workload setup failed: $(tail -n 5 /tmp/workload.log | tr '\n' ' ')"; exit 1; }
       - uses: chickensoft-games/setup-godot@v2
         with:
@@ -35,6 +35,11 @@ jobs:
         working-directory: native-game
         run: |
           set -o pipefail
+          TOOLCHAIN="$ANDROID_HOME/ndk/26.1.10909125/build/cmake/android.toolchain.cmake"
+          if [ ! -f "$TOOLCHAIN" ]; then
+            echo "::error::NDK is missing. SDK output: $(tail -n 8 /tmp/sdk.log | tr '\n' ' ')"
+            exit 1
+          fi
           cmake -S Native -B /tmp/driving-build \
             -DCMAKE_TOOLCHAIN_FILE="$ANDROID_HOME/ndk/26.1.10909125/build/cmake/android.toolchain.cmake" \
             -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-24 2>&1 | tee /tmp/cmake.log || { echo "::error::CMake failed: $(tail -n 12 /tmp/cmake.log | tr '\n' ' ')"; exit 1; }
@@ -44,7 +49,7 @@ jobs:
       - name: Configure Godot Android export
         run: |
           mkdir -p "$HOME/.config/godot" "$HOME/.android"
-          keytool -genkeypair -v -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname 'CN=Android Debug,O=Android,C=US'
+          [ -f "$HOME/.android/debug.keystore" ] || keytool -genkeypair -v -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname 'CN=Android Debug,O=Android,C=US'
           cat > "$HOME/.config/godot/editor_settings-4.tres" <<SETTINGS
           [gd_resource type="EditorSettings" format=3]
           [resource]
@@ -57,13 +62,13 @@ jobs:
       - name: Import and compile C#
         working-directory: native-game
         run: |
-          godot --headless --editor --import --quit
-          dotnet build CoastalCity.csproj --configuration Debug
+          godot --headless --editor --import --quit 2>&1 | tee /tmp/import.log || { echo "::error::Godot import: $(tail -n 12 /tmp/import.log | tr '\n' ' ')"; exit 1; }
+          dotnet build CoastalCity.csproj --configuration Debug 2>&1 | tee /tmp/dotnet-build.log || { echo "::error::C# build: $(tail -n 16 /tmp/dotnet-build.log | tr '\n' ' ')"; exit 1; }
       - name: Export and verify APK
         working-directory: native-game
         run: |
           mkdir -p build
-          godot --headless --verbose --export-debug 'Android arm64' "$(pwd)/build/CoastalCity-debug.apk"
+          godot --headless --verbose --export-debug 'Android arm64' "$(pwd)/build/CoastalCity-debug.apk" 2>&1 | tee /tmp/export.log || { echo "::error::Godot export: $(tail -n 16 /tmp/export.log | tr '\n' ' ')"; exit 1; }
           test -s build/CoastalCity-debug.apk
           "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose build/CoastalCity-debug.apk
           "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging build/CoastalCity-debug.apk | head -n 10
