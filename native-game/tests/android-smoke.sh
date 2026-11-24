@@ -2,6 +2,10 @@
 set -euo pipefail
 package=org.example.coastalcity
 apk=native-game/build/CoastalCity-debug.apk
+adb shell input keyevent KEYCODE_WAKEUP
+adb shell wm dismiss-keyguard || true
+adb shell settings put system accelerometer_rotation 0
+adb shell settings put system user_rotation 1
 adb install -r "$apk"
 adb logcat -c
 activity=$(adb shell cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.LAUNCHER "$package" | tr -d '\r' | tail -n 1)
