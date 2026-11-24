@@ -4,7 +4,10 @@ package=org.example.coastalcity
 apk=native-game/build/CoastalCity-debug.apk
 adb install -r "$apk"
 adb logcat -c
-adb shell am start -n "$package/org.godotengine.godot.GodotApp"
+activity=$(adb shell cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.LAUNCHER "$package" | tr -d '\r' | tail -n 1)
+if [[ "$activity" != "$package/"* ]]; then echo "::error::Cannot resolve launcher activity: $activity"; exit 1; fi
+echo "Starting $activity"
+adb shell am start -W -n "$activity"
 ready=0
 for i in $(seq 1 40); do
   adb logcat -d -s godot:I '*:S' > /tmp/game-log.txt || true
@@ -25,7 +28,7 @@ if ! adb shell pidof "$package" | grep -q '[0-9]'; then
 fi
 adb shell am force-stop "$package"
 adb logcat -c
-adb shell am start -n "$package/org.godotengine.godot.GodotApp"
+adb shell am start -W -n "$activity"
 ready=0
 for i in $(seq 1 40); do
   adb logcat -d -s godot:I '*:S' > /tmp/game-log.txt || true
