@@ -73,7 +73,7 @@ jobs:
         run: |
           mkdir -p build
           godot --headless --verbose --export-debug 'Android arm64' "$(pwd)/build/CoastalCity-debug.apk" 2>&1 | tee /tmp/export.log || { echo "::error::Godot export: $(tail -n 16 /tmp/export.log | tr '\n' ' ')"; exit 1; }
-          if grep -Ei 'Export \.NET Project|Publish failed|InvalidOperationException|^ERROR:' /tmp/export.log; then echo "::error::Godot reported an export failure"; exit 1; fi
+          if grep -Ei 'Export \.NET Project|Publish failed|InvalidOperationException|^ERROR:' /tmp/export.log; then echo "::error::Godot export reported: $(grep -Ei -A 3 -B 3 'error|failed|exception' /tmp/export.log | tail -n 30 | tr '\n' ' ' | cut -c1-7000)"; exit 1; fi
           test -s build/CoastalCity-debug.apk || { echo "::error::APK missing. Godot: $(tail -n 25 /tmp/export.log | tr '\n' ' ')"; exit 1; }
           "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose build/CoastalCity-debug.apk 2>&1 | tee /tmp/apksigner.log || { echo "::error::Signing verification: $(tail -n 8 /tmp/apksigner.log | tr '\n' ' ')"; exit 1; }
           "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging build/CoastalCity-debug.apk > /tmp/badging.txt || { echo "::error::APK badging failed"; exit 1; }
