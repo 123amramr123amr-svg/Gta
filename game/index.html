@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>GTA VI — Leonida Fan Game | Vice City</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{width:100%;height:100%;overflow:hidden;background:#0b0e1a;font-family:system-ui,Arial,sans-serif;color:#fff}
+  #c{position:fixed;inset:0;display:block}
+  /* HUD */
+  #hud{position:fixed;inset:0;pointer-events:none;z-index:10}
+  #topbar{position:absolute;top:10px;right:10px;left:10px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+  .panel{background:rgba(10,10,25,.72);border:1px solid rgba(255,255,255,.18);border-radius:14px;padding:10px 12px;backdrop-filter:blur(8px)}
+  #money{font-size:22px;font-weight:900;color:#7CFC9A;text-shadow:0 2px 8px #000}
+  #stars{font-size:20px;letter-spacing:2px;color:#FFD93D;text-shadow:0 2px 6px #000}
+  #healthwrap{width:150px;height:12px;background:#222;border-radius:99px;overflow:hidden;margin-top:6px;border:1px solid #444}
+  #health{height:100%;width:100%;background:linear-gradient(90deg,#ff5a5a,#ffb347);transition:width .3s}
+  #charName{font-weight:800;font-size:14px}
+  #mission{position:absolute;top:86px;right:10px;max-width:320px;font-size:14px;line-height:1.5}
+  #mission b{color:#FFD93D}
+  #minimap{position:absolute;bottom:12px;right:12px;width:150px;height:150px;border-radius:50%;border:3px solid rgba(255,255,255,.7);background:#0a2a1a;overflow:hidden;box-shadow:0 6px 20px rgba(0,0,0,.6)}
+  #minimap canvas{width:100%;height:100%}
+  #radio{position:absolute;bottom:12px;left:12px;font-size:12px}
+  #radio .on{color:#00E5FF;font-weight:800}
+  /* Touch controls */
+  #joy{position:fixed;bottom:110px;left:18px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.35);z-index:20;touch-action:none}
+  #stick{position:absolute;left:35px;top:35px;width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.85)}
+  .btns{position:fixed;bottom:110px;left:160px;display:flex;flex-direction:column;gap:8px;z-index:20}
+  .btns button{pointer-events:auto;width:64px;height:48px;border-radius:14px;border:1px solid rgba(255,255,255,.4);background:rgba(20,20,40,.8);color:#fff;font-weight:800;font-size:13px}
+  .btns button:active{background:#FF2E88}
+  #start{position:fixed;inset:0;background:linear-gradient(160deg,#12002b,#2b0a3d 45%,#ff2e88 130%);z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px}
+  #start h1{font-size:52px;letter-spacing:2px;text-shadow:0 4px 0 #00E5FF,0 8px 24px #000}
+  #start h2{color:#FFD93D;letter-spacing:6px;margin:4px 0 14px}
+  #start p{max-width:560px;line-height:1.7;opacity:.92}
+  #playBtn{margin-top:22px;padding:16px 42px;font-size:20px;font-weight:900;border:none;border-radius:99px;background:linear-gradient(90deg,#FF2E88,#FF9A3D);color:#fff;box-shadow:0 10px 30px rgba(255,46,136,.5);cursor:pointer}
+  #toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.85);padding:18px 26px;border-radius:16px;font-size:20px;font-weight:900;z-index:40;display:none;text-align:center;border:2px solid #FFD93D}
+  @media(max-width:700px){#minimap{width:110px;height:110px}#mission{max-width:220px;font-size:12px}#start h1{font-size:38px}}
+</style>
+<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js"}}</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="hud">
+  <div id="topbar">
+    <div class="panel"><div id="charName">Jason Duval</div><div id="money">$500</div><div id="healthwrap"><div id="health"></div></div></div>
+    <div class="panel"><div id="stars">☆☆☆☆☆☆</div><div style="font-size:12px;opacity:.8">WANTED</div></div>
+  </div>
+  <div id="mission" class="panel"><b>مهمة 1: Easy Score</b><br>روح للعلامة الصفراء، خد الشنطة، واهرب من الشرطة!</div>
+  <div id="minimap"><canvas id="mm" width="300" height="300"></canvas></div>
+  <div id="radio" class="panel">📻 <span id="radioName">Vice City FM</span> <span id="radioState" class="on">شغال</span><br><small>Synthwave • Leonida</small></div>
+</div>
+
+<div id="joy"><div id="stick"></div></div>
+<div class="btns">
+  <button id="bEnter">🚗 اركب</button>
+  <button id="bSwitch">🔄 بدّل</button>
+  <button id="bRun">🏃 اجري</button>
+  <button id="bRadio">📻 راديو</button>
+</div>
+
+<div id="toast"></div>
+
+<div id="start">
+  <h1>GTA VI</h1><h2>LEONIDA • VICE CITY</h2>
+  <p>لعبة Fan-Made مستوحاة من GTA 6 — العب بـ <b>Jason Duval</b> و <b>Lucia Caminos</b> في شوارع Vice City النيونية.<br>
+  على الموبايل: الجويستيك للحركة. على الكمبيوتر: WASD + Shift للجري + E لركوب العربية.</p>
+  <button id="playBtn">▶ العب دلوقتي</button>
+  <p style="font-size:12px;margin-top:14px;opacity:.7">Fan project للتعلم — مش لعبة Rockstar الرسمية</p>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+
+// ---------- Scene ----------
+const canvas=document.getElementById('c');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth,innerHeight);
+renderer.shadowMap.enabled=true;
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x1a0b2e);
+scene.fog=new THREE.Fog(0x2b0a3d,80,320);
+const camera=new THREE.PerspectiveCamera(62,innerWidth/innerHeight,0.1,1000);
+
+// Lights - sunset Vice City
+scene.add(new THREE.AmbientLight(0xff9a7a,0.7));
+const sun=new THREE.DirectionalLight(0xff7a3d,1.6); sun.position.set(-60,80,-40); sun.castShadow=true; scene.add(sun);
+const neon=new THREE.PointLight(0xff2e88,2,120); neon.position.set(0,20,0); scene.add(neon);
+
+// Ground / Ocean / Roads
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(600,600),new THREE.MeshStandardMaterial({color:0x2a3a2a}));
+ground.rotation.x=-Math.PI/2; ground.receiveShadow=true; scene.add(ground);
+const ocean=new THREE.Mesh(new THREE.PlaneGeometry(600,180),new THREE.MeshStandardMaterial({color:0x00b4d8,transparent:true,opacity:.9}));
+ocean.rotation.x=-Math.PI/2; ocean.position.set(0,0.05,-260); scene.add(ocean);
+// beach sand
+const sand=new THREE.Mesh(new THREE.PlaneGeometry(600,40),new THREE.MeshStandardMaterial({color:0xf4d58d}));
+sand.rotation.x=-Math.PI/2; sand.position.set(0,0.08,-175); scene.add(sand);
+
+// Roads grid
+const roadMat=new THREE.MeshStandardMaterial({color:0x22222e});
+for(let i=-4;i<=4;i++){
+  const r1=new THREE.Mesh(new THREE.PlaneGeometry(600,10),roadMat); r1.rotation.x=-Math.PI/2; r1.position.set(0,0.1,i*50); scene.add(r1);
+  const r2=new THREE.Mesh(new THREE.PlaneGeometry(10,600),roadMat); r2.rotation.x=-Math.PI/2; r2.position.set(i*50,0.1,0); scene.add(r2);
+}
+
+// Buildings - neon Vice City
+const neonColors=[0xff2e88,0x00e5ff,0xffd93d,0x7c4dff,0x00ff9d];
+function building(x,z,w,h,d,color){
+  const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshStandardMaterial({color:0x1a1a2e,emissive:color,emissiveIntensity:.35}));
+  m.position.set(x,h/2,z); m.castShadow=true; scene.add(m);
+  // windows glow strip
+  const strip=new THREE.Mesh(new THREE.BoxGeometry(w+0.2,1.2,d+0.2),new THREE.MeshBasicMaterial({color}));
+  strip.position.set(x,h-1,z); scene.add(strip);
+}
+for(let gx=-4;gx<=4;gx++) for(let gz=-3;gz<=4;gz++){
+  if(gx===0&&gz===0) continue;
+  if(Math.abs(gx*50)<30&&Math.abs(gz*50)<30) continue;
+  const h=12+Math.random()*38;
+  building(gx*50+(Math.random()*10-5), gz*50+(Math.random()*10-5), 16+Math.random()*10, h, 16+Math.random()*10, neonColors[Math.floor(Math.random()*neonColors.length)]);
+}
+// Palm trees
+function palm(x,z){
+  const g=new THREE.Group();
+  const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.3,.5,7,6),new THREE.MeshStandardMaterial({color:0x8b5a2b})); trunk.position.y=3.5; g.add(trunk);
+  for(let i=0;i<6;i++){const leaf=new THREE.Mesh(new THREE.ConeGeometry(2.2,1,4),new THREE.MeshStandardMaterial({color:0x00c853})); leaf.position.set(Math.cos(i)*1.4,7.2,Math.sin(i)*1.4); leaf.rotation.z=Math.cos(i)*.7; g.add(leaf);}
+  g.position.set(x,0,z); scene.add(g);
+}
+for(let i=0;i<40;i++) palm(-280+Math.random()*560, -160+Math.random()*20);
+for(let i=0;i<30;i++) palm(-250+Math.random()*500, -120+Math.random()*240);
+
+// ---------- Characters (Jason / Lucia) ----------
+function makeChar(topColor,skin=0xf2c9a0){
+  const g=new THREE.Group();
+  const body=new THREE.Mesh(new THREE.BoxGeometry(.9,1.1,.5),new THREE.MeshStandardMaterial({color:topColor})); body.position.y=1.25; body.castShadow=true; g.add(body);
+  const head=new THREE.Mesh(new THREE.BoxGeometry(.55,.6,.55),new THREE.MeshStandardMaterial({color:skin})); head.position.y=2.15; g.add(head);
+  const hair=new THREE.Mesh(new THREE.BoxGeometry(.6,.25,.6),new THREE.MeshStandardMaterial({color:0x2b1a0a})); hair.position.y=2.5; g.add(hair);
+  const legL=new THREE.Mesh(new THREE.BoxGeometry(.32,.9,.32),new THREE.MeshStandardMaterial({color:0x1a2a5a})); legL.position.set(-.22,.45,0); g.add(legL);
+  const legR=legL.clone(); legR.position.x=.22; g.add(legR);
+  const armL=new THREE.Mesh(new THREE.BoxGeometry(.22,.85,.22),new THREE.MeshStandardMaterial({color:skin})); armL.position.set(-.6,1.3,0); g.add(armL);
+  const armR=armL.clone(); armR.position.x=.6; g.add(armR);
+  g.userData={legL,legR,armL,armR};
+  return g;
+}
+const jason=makeChar(0xffffff); jason.position.set(0,0,10); scene.add(jason);
+const lucia=makeChar(0xff2e4d,0xd9a066); lucia.position.set(3,0,10); lucia.visible=false; scene.add(lucia);
+let player=jason, isJason=true, walkT=0;
+
+// ---------- Cars ----------
+const cars=[];
+function makeCar(color,type='sedan'){
+  const g=new THREE.Group();
+  const body=new THREE.Mesh(new THREE.BoxGeometry(2,0.7,4.2),new THREE.MeshStandardMaterial({color,metalness:.6,roughness:.3})); body.position.y=.65; body.castShadow=true; g.add(body);
+  const cabin=new THREE.Mesh(new THREE.BoxGeometry(1.7,0.6,2),new THREE.MeshStandardMaterial({color:0x111122,metalness:.4})); cabin.position.set(0,1.25,-.2); g.add(cabin);
+  const wheelGeo=new THREE.CylinderGeometry(.38,.38,.3,12);
+  const wm=new THREE.MeshStandardMaterial({color:0x111111});
+  [[-1,1.3],[1,1.3],[-1,-1.3],[1,-1.3]].forEach(([x,z])=>{const w=new THREE.Mesh(wheelGeo,wm); w.rotation.z=Math.PI/2; w.position.set(x,.38,z); g.add(w);});
+  // headlights
+  const hl=new THREE.Mesh(new THREE.BoxGeometry(1.6,.18,.1),new THREE.MeshBasicMaterial({color:0xffffaa})); hl.position.set(0,.65,2.12); g.add(hl);
+  g.userData={speed:0,angle:0};
+  return g;
+}
+const carDefs=[
+  {c:0xff2e88,name:'Grotti Cheetah'},{c:0xff8c00,name:'Vapid Dominator'},{c:0x00e5ff,name:'Bravado Buffalo'},
+  {c:0xffd93d,name:'Invetero Coquette'},{c:0x7c4dff,name:'Pfister Comet'},{c:0x00ff9d,name:'Karin Sultan'},
+  {c:0xeeeeee,name:'Albany Emperor'},{c:0x2222ff,name:'Vapid Police'}
+];
+carDefs.forEach((d,i)=>{
+  const car=makeCar(d.c); car.position.set(-40+i*14,0,-30+(i%3)*20); car.rotation.y=Math.random()*Math.PI; scene.add(car); cars.push(car);
+});
+// traffic cars moving
+const traffic=[];
+for(let i=0;i<6;i++){const t=makeCar(neonColors[i%5]); t.position.set(-200+i*70,0,(i%2? -50:50)); scene.add(t); traffic.push(t);}
+
+// Mission marker + bag
+const marker=new THREE.Mesh(new THREE.CylinderGeometry(2,2,8,16),new THREE.MeshBasicMaterial({color:0xffd93d,transparent:true,opacity:.5}));
+marker.position.set(60,4,-60); scene.add(marker);
+const bag=new THREE.Mesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshStandardMaterial({color:0xffd93d,emissive:0xaa8800})); bag.position.copy(marker.position); bag.position.y=.5; scene.add(bag);
+
+// Police
+const police=[]; for(let i=0;i<3;i++){const p=makeCar(0x2244ff); p.position.set(120,0,120); scene.add(p); police.push(p);}
+
+// ---------- Input ----------
+const keys={}; addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true; if(e.key.toLowerCase()==='e') toggleCar(); if(e.key==='Tab'){e.preventDefault(); switchChar();}});
+addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+// joystick
+let joyX=0,joyY=0; const joy=document.getElementById('joy'),stick=document.getElementById('stick');
+let joyId=null;
+joy.addEventListener('touchstart',e=>{joyId=e.touches[0].identifier},{passive:true});
+addEventListener('touchmove',e=>{for(const t of e.touches) if(t.identifier===joyId){const r=joy.getBoundingClientRect(); let dx=t.clientX-(r.left+60), dy=t.clientY-(r.top+60); const d=Math.hypot(dx,dy)||1; const cl=Math.min(d,45); dx=dx/d*cl; dy=dy/d*cl; stick.style.left=(35+dx)+'px'; stick.style.top=(35+dy)+'px'; joyX=dx/45; joyY=dy/45;}},{passive:true});
+addEventListener('touchend',e=>{for(const t of e.changedTouches) if(t.identifier===joyId){joyId=null;joyX=joyY=0;stick.style.left='35px';stick.style.top='35px';}});
+let running=false;
+document.getElementById('bRun').onclick=()=>{running=!running;};
+document.getElementById('bEnter').onclick=toggleCar;
+document.getElementById('bSwitch').onclick=switchChar;
+document.getElementById('bRadio').onclick=()=>toggleRadio();
+
+function switchChar(){
+  isJason=!isJason;
+  player.visible=false; player=isJason?jason:lucia; player.visible=true;
+  document.getElementById('charName').textContent=isJason?'Jason Duval':'Lucia Caminos';
+  toast(isJason?'▶ Jason Duval':'▶ Lucia Caminos');
+}
+let inCar=null;
+function toggleCar(){
+  if(inCar){ inCar=null; toast('نزلت من العربية'); return; }
+  let best=null,bd=1e9;
+  cars.forEach(c=>{const d=c.position.distanceTo(player.position); if(d<bd){bd=d;best=c;}});
+  if(bd<5){ inCar=best; toast('🚗 ركبت: '+ (best===cars[7]?'Vapid Police':'عربية')); if(bd<3) addWanted(1); }
+  else toast('قرب من عربية الأول');
+}
+
+// ---------- Wanted / Money / Health ----------
+let wanted=0, money=500, health=100, missionStage=0;
+function addWanted(n){ wanted=Math.min(6,wanted+n); updateHUD(); }
+function updateHUD(){
+  document.getElementById('stars').textContent='★'.repeat(wanted)+'☆'.repeat(6-wanted);
+  document.getElementById('money').textContent='$'+money.toLocaleString();
+  document.getElementById('health').style.width=health+'%';
+}
+function toast(msg){const t=document.getElementById('toast'); t.textContent=msg; t.style.display='block'; setTimeout(()=>t.style.display='none',1800);}
+
+// ---------- Radio (Web Audio Synthwave) ----------
+let audioCtx=null, radioOn=true, radioTimer=null;
+function initAudio(){ if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)(); }
+function playNote(freq,time,dur,type='sawtooth',vol=.06){
+  const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+  o.type=type; o.frequency.value=freq; g.gain.setValueAtTime(vol,time); g.gain.exponentialRampToValueAtTime(.001,time+dur);
+  o.connect(g).connect(audioCtx.destination); o.start(time); o.stop(time+dur);
+}
+function radioLoop(){
+  if(!radioOn||!audioCtx) return;
+  const bass=[55,55,65.4,49]; const lead=[220,261.6,329.6,392,329.6,261.6];
+  let t=audioCtx.currentTime+.1;
+  for(let i=0;i<8;i++){ playNote(bass[i%4],t+i*.25,.22,'triangle',.12); if(i%2===0) playNote(lead[(i/2)%lead.length],t+i*.25,.18,'sawtooth',.04); }
+  radioTimer=setTimeout(radioLoop,2000);
+}
+function toggleRadio(){ radioOn=!radioOn; document.getElementById('radioState').textContent=radioOn?'شغال':'مطفي'; document.getElementById('radioState').className=radioOn?'on':''; if(radioOn){initAudio(); radioLoop();} }
+
+// ---------- Minimap ----------
+const mm=document.getElementById('mm').getContext('2d');
+function drawMap(){
+  mm.fillStyle='#0a2a1a'; mm.fillRect(0,0,300,300);
+  mm.strokeStyle='#333'; for(let i=0;i<300;i+=30){mm.beginPath();mm.moveTo(i,0);mm.lineTo(i,300);mm.stroke();mm.beginPath();mm.moveTo(0,i);mm.lineTo(300,i);mm.stroke();}
+  const px=player.position.x, pz=player.position.z;
+  const mx=150+px*0.5, my=150+pz*0.5;
+  // marker
+  mm.fillStyle='#FFD93D'; mm.beginPath(); mm.arc(150+marker.position.x*0.5,150+marker.position.z*0.5,8,0,7); mm.fill();
+  // cars
+  mm.fillStyle='#fff'; cars.forEach(c=>mm.fillRect(150+c.position.x*0.5-2,150+c.position.z*0.5-2,4,4));
+  // player
+  mm.fillStyle=isJason?'#fff':'#ff2e4d'; mm.beginPath(); mm.arc(mx,my,7,0,7); mm.fill(); mm.strokeStyle='#000'; mm.stroke();
+}
+
+// ---------- Game Loop ----------
+const clock=new THREE.Clock();
+let camAngle=0;
+function animate(){
+  requestAnimationFrame(animate);
+  const dt=Math.min(clock.getDelta(),.05);
+  const speedBase=(keys['shift']||running)?11:5.5;
+
+  if(inCar){
+    // driving
+    let accel=0;
+    if(keys['w']||joyY<-.2) accel+=22;
+    if(keys['s']||joyY>.2) accel-=18;
+    inCar.userData.speed+=accel*dt; inCar.userData.speed*=0.96; inCar.userData.speed=Math.max(-10,Math.min(28,inCar.userData.speed));
+    let steer=0;
+    if(keys['a']||joyX<-.2) steer+=1.6;
+    if(keys['d']||joyX>.2) steer-=1.6;
+    inCar.userData.angle+=steer*dt*(inCar.userData.speed>=0?1:-1);
+    inCar.rotation.y=inCar.userData.angle;
+    inCar.position.x+=Math.sin(inCar.userData.angle)*inCar.userData.speed*dt;
+    inCar.position.z+=Math.cos(inCar.userData.angle)*inCar.userData.speed*dt;
+    player.position.copy(inCar.position);
+    if(Math.abs(inCar.userData.speed)>18 && Math.random()<.02) addWanted(1);
+  } else {
+    // walk
+    let mx=0,mz=0;
+    if(keys['w']) mz-=1; if(keys['s']) mz+=1; if(keys['a']) mx-=1; if(keys['d']) mx+=1;
+    mx+=joyX; mz+=joyY;
+    const len=Math.hypot(mx,mz);
+    if(len>.1){
+      const nx=mx/len, nz=mz/len;
+      player.position.x+=nx*speedBase*dt; player.position.z+=nz*speedBase*dt;
+      player.rotation.y=Math.atan2(nx,nz);
+      walkT+=dt*10;
+      const u=player.userData; u.legL.rotation.x=Math.sin(walkT)*.7; u.legR.rotation.x=-Math.sin(walkT)*.7; u.armL.rotation.x=-Math.sin(walkT)*.5; u.armR.rotation.x=Math.sin(walkT)*.5;
+    }
+    player.position.x=Math.max(-280,Math.min(280,player.position.x));
+    player.position.z=Math.max(-280,Math.min(280,player.position.z));
+  }
+
+  // traffic
+  traffic.forEach(t=>{ t.position.x+=dt*12; if(t.position.x>280) t.position.x=-280; });
+  // police chase
+  if(wanted>0){
+    police.forEach(p=>{
+      const dir=new THREE.Vector3().subVectors(player.position,p.position); dir.y=0; const d=dir.length();
+      if(d>3){ dir.normalize(); p.position.addScaledVector(dir,dt*(8+wanted*2)); p.rotation.y=Math.atan2(dir.x,dir.z); }
+      if(d<2.5 && Math.random()<.01){ health=Math.max(0,health-2); updateHUD(); }
+    });
+  }
+  // mission logic
+  marker.rotation.y+=dt; bag.rotation.y+=dt*2;
+  if(missionStage===0 && player.position.distanceTo(marker.position)<4){
+    missionStage=1; money+=200; addWanted(2); bag.visible=false;
+    document.getElementById('mission').innerHTML='<b>اهرب!</b><br>الشرطة جاية — اختفِ أو استسلم. روح لنقطة التسليم عند الشاطئ.';
+    marker.position.set(-80,4,-140); bag.visible=true; bag.position.copy(marker.position); bag.position.y=.5; toast('💰 خدت الشنطة +$200 — الشرطة!');
+    updateHUD();
+  } else if(missionStage===1 && player.position.distanceTo(marker.position)<4){
+    missionStage=2; money+=800; wanted=0; bag.visible=false;
+    document.getElementById('mission').innerHTML='<b>مبروك!</b><br>خلصت المهمة الأولى. المرحلة الجاية: قيادة وسرقات أكبر في Vice City.';
+    toast('🏆 المهمة خلصت +$800'); updateHUD();
+  }
+  // wanted decay
+  if(wanted>0 && Math.random()<.0008){ wanted--; updateHUD(); }
+
+  // camera follow
+  const target=player.position;
+  camera.position.set(target.x+Math.sin(camAngle)*10, 7, target.z+Math.cos(camAngle)*10);
+  camera.lookAt(target.x,1.5,target.z);
+  if(keys['q']) camAngle+=dt*1.5; if(keys['e']&&inCar) camAngle+=dt*1.5;
+
+  drawMap();
+  renderer.render(scene,camera);
+}
+animate();
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+
+document.getElementById('playBtn').onclick=()=>{
+  document.getElementById('start').style.display='none';
+  initAudio(); radioLoop(); toast('🌴 أهلاً بيك في Vice City — Leonida');
+};
+updateHUD();
+</script>
+</body>
+</html>
