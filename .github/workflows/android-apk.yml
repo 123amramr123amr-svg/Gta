@@ -34,10 +34,11 @@ jobs:
       - name: Build native C++ driving library
         working-directory: native-game
         run: |
+          set -o pipefail
           cmake -S Native -B /tmp/driving-build \
             -DCMAKE_TOOLCHAIN_FILE="$ANDROID_HOME/ndk/26.1.10909125/build/cmake/android.toolchain.cmake" \
-            -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-24
-          cmake --build /tmp/driving-build --config Release
+            -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-24 2>&1 | tee /tmp/cmake.log || { echo "::error::CMake failed: $(tail -n 12 /tmp/cmake.log | tr '\n' ' ')"; exit 1; }
+          cmake --build /tmp/driving-build --config Release 2>&1 | tee /tmp/cmake-build.log || { echo "::error::Build failed: $(tail -n 12 /tmp/cmake-build.log | tr '\n' ' ')"; exit 1; }
           mkdir -p native/bin/arm64-v8a
           cp /tmp/driving-build/libdriving.so native/bin/arm64-v8a/
       - name: Configure Godot Android export
