@@ -16,7 +16,7 @@ for i in $(seq 1 40); do
 done
 if [ "$ready" != 1 ]; then
   adb logcat -d > /tmp/android-log.txt
-  echo "::error::Godot logs: $(adb logcat -d -s godot:V Godot:V AndroidRuntime:E libc:F DEBUG:F '*:S' | tail -n 60 | tr '\n' ' ' | cut -c1-9000)"
+  echo "::error::Godot logs: $(adb logcat -d -s godot:V Godot:V AndroidRuntime:E libc:F '*:S' | tail -n 50 | tr '\n' ' ' | cut -c1-6000) STACK: $(adb logcat -d -s DEBUG:F '*:S' | grep -E 'signal |Cause:|#0[0-9]' | head -n 14 | tr '\n' ' ' | cut -c1-3000)"
   echo "::error::Game did not reach its main scene"
   exit 1
 fi
@@ -38,7 +38,7 @@ for i in $(seq 1 40); do
 done
 if [ "$ready" != 1 ]; then
   adb logcat -d > /tmp/android-log.txt
-  echo "::error::Second launch failed: $(adb logcat -d -s godot:V Godot:V AndroidRuntime:E libc:F DEBUG:F '*:S' | tail -n 60 | tr '\n' ' ' | cut -c1-9000)"
+  echo "::error::Second launch failed: $(adb logcat -d -s godot:V Godot:V AndroidRuntime:E libc:F '*:S' | tail -n 50 | tr '\n' ' ' | cut -c1-6000) STACK: $(adb logcat -d -s DEBUG:F '*:S' | grep -E 'signal |Cause:|#0[0-9]' | head -n 14 | tr '\n' ' ' | cut -c1-3000)"
   exit 1
 fi
 sleep 10
