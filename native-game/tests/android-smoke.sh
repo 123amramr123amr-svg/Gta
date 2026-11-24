@@ -6,14 +6,14 @@ adb install -r "$apk"
 adb logcat -c
 adb shell am start -n "$package/org.godotengine.godot.GodotApp"
 ready=0
-for i in $(seq 1 90); do
+for i in $(seq 1 40); do
   adb logcat -d -s godot:I '*:S' > /tmp/game-log.txt || true
   if grep -q 'COASTAL_CITY_READY' /tmp/game-log.txt; then ready=1; break; fi
   sleep 1
 done
 if [ "$ready" != 1 ]; then
   adb logcat -d > /tmp/android-log.txt
-  echo "::error::Game did not reach its main scene. Relevant log: $(grep -Ei 'godot|FATAL EXCEPTION|Fatal signal|hostfxr|mono|coastalcity' /tmp/android-log.txt | tail -n 30 | tr '\n' ' ' | cut -c1-3500)"
+  echo "::error::Game did not reach its main scene. Relevant log: $(grep -Ei ' godot[ :]| AndroidRuntime[ :]| Fatal signal| hostfxr| mono | libc[ :]|Displayed org.example.coastalcity|START u0.*org.example.coastalcity' /tmp/android-log.txt | tail -n 50 | tr '\n' ' ' | cut -c1-3500)"
   exit 1
 fi
 # Check that the process remains alive beyond the splash screen, then relaunch
@@ -27,14 +27,14 @@ adb shell am force-stop "$package"
 adb logcat -c
 adb shell am start -n "$package/org.godotengine.godot.GodotApp"
 ready=0
-for i in $(seq 1 90); do
+for i in $(seq 1 40); do
   adb logcat -d -s godot:I '*:S' > /tmp/game-log.txt || true
   if grep -q 'COASTAL_CITY_READY' /tmp/game-log.txt; then ready=1; break; fi
   sleep 1
 done
 if [ "$ready" != 1 ]; then
   adb logcat -d > /tmp/android-log.txt
-  echo "::error::Second launch failed: $(grep -Ei 'godot|FATAL EXCEPTION|Fatal signal|hostfxr|mono|coastalcity' /tmp/android-log.txt | tail -n 30 | tr '\n' ' ' | cut -c1-3500)"
+  echo "::error::Second launch failed: $(grep -Ei ' godot[ :]| AndroidRuntime[ :]| Fatal signal| hostfxr| mono | libc[ :]|Displayed org.example.coastalcity|START u0.*org.example.coastalcity' /tmp/android-log.txt | tail -n 50 | tr '\n' ' ' | cut -c1-3500)"
   exit 1
 fi
 sleep 10
